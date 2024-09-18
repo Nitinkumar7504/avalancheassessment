@@ -1,66 +1,65 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-//import "hardhat/console.sol";
+contract FinanceManager {
+    address payable public admin;
+    uint256 public accountBalance;
 
-contract Assessment {
-    address payable public owner;
-    uint256 public balance;
+    event FundsAdded(uint256 amount);
+    event FundsRemoved(uint256 amount);
 
-    event Deposit(uint256 amount);
-    event Withdraw(uint256 amount);
-
-    constructor(uint initBalance) payable {
-        owner = payable(msg.sender);
-        balance = initBalance;
+    constructor(uint initialFunds) payable {
+        admin = payable(msg.sender);
+        accountBalance = initialFunds;
     }
 
-    function getBalance() public view returns(uint256){
-        return balance;
+    function checkBalance() public view returns(uint256){
+        return accountBalance;
     }
 
-    function deposit(uint256 _amount) public payable {
-        uint _previousBalance = balance;
+    function addFunds(uint256 _amount) public payable {
+        uint _oldBalance = accountBalance;
 
-        // make sure this is the owner
-        require(msg.sender == owner, "You are not the owner of this account");
+        // ensure only admin can add funds
+        require(msg.sender == admin, "Unauthorized: Only admin can add funds");
 
-        // perform transaction
-        balance += _amount;
+        // add funds to balance
+        accountBalance += _amount;
 
-        // assert transaction completed successfully
-        assert(balance == _previousBalance + _amount);
+        // check transaction success
+        assert(accountBalance == _oldBalance + _amount);
 
-        // emit the event
-        emit Deposit(_amount);
+        // emit event
+        emit FundsAdded(_amount);
     }
 
     // custom error
-    error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
+    error LowBalance(uint256 accountBalance, uint256 removalAmount);
 
-    function withdraw(uint256 _withdrawAmount) public {
-        require(msg.sender == owner, "You are not the owner of this account");
-        uint _previousBalance = balance;
-        if (balance < _withdrawAmount) {
-            revert InsufficientBalance({
-                balance: balance,
-                withdrawAmount: _withdrawAmount
+    function removeFunds(uint256 _removalAmount) public {
+        require(msg.sender == admin, "Unauthorized: Only admin can remove funds");
+        uint _oldBalance = accountBalance;
+
+        if (accountBalance < _removalAmount) {
+            revert LowBalance({
+                accountBalance: accountBalance,
+                removalAmount: _removalAmount
             });
         }
 
-        // withdraw the given amount
-        balance -= _withdrawAmount;
+        // subtract the funds
+        accountBalance -= _removalAmount;
 
-        // assert the balance is correct
-        assert(balance == (_previousBalance - _withdrawAmount));
+        // ensure balance is correct
+        assert(accountBalance == (_oldBalance - _removalAmount));
 
-        // emit the event
-        emit Withdraw(_withdrawAmount);
+        // emit event
+        emit FundsRemoved(_removalAmount);
     }
     
-    function burn() public {
-        balance = 0;
+    function clearFunds() public {
+        accountBalance = 0;
 
-        emit Withdraw(balance);
+        emit FundsRemoved(accountBalance);
     }
 }
